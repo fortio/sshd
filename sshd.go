@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"encoding/pem"
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -73,6 +74,11 @@ func Handler(s ssh.Session) {
 	env := envMap(s, p)
 	log.Infof("New SSH session from %v user=%s, env=%v", s.RemoteAddr(), s.User(), env)
 	log.S(log.Info, "Pty:", log.Any("pty", p), log.Any("ok", ok))
+	if !ok {
+		log.Warnf("No PTY requested, closing session")
+		fmt.Fprintln(s, "Need PTY to demo interactive TUI, sorry!")
+		return
+	}
 	width, height := p.Window.Width, p.Window.Height
 	ap := ansipixels.AnsiPixels{
 		Out:       bufio.NewWriter(s),
