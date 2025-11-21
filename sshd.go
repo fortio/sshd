@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"fortio.org/cli"
 	"fortio.org/log"
 	"fortio.org/scli"
 	"fortio.org/terminal"
@@ -115,8 +116,9 @@ func Handler(s ssh.Session) {
 	resizeFunc := func() error {
 		ap.ClearScreen()
 		ap.WriteBoxed(ap.H/2-1,
-			"Ansipixels sshd demo!\nTerminal width: %d, height: %d\nYou can resize me!\nQ to quit\n1 for brick game,  \n2 for game of life.",
-			width, height)
+			"Ansipixels sshdtui v%s!\nTerminal width: %d, height: %d\n"+
+				"You can resize me!\nQ to quit\n1 for brick game,  \n2 for game of life.",
+			cli.ShortVersion, width, height)
 		ap.EndSyncMode()
 		return nil
 	}
