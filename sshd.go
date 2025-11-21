@@ -41,19 +41,21 @@ func (ia InputAdapter) StartDirect() {
 
 const FPS = 30
 
-func RunBrick() {
+func RunBrick(ap *ansipixels.AnsiPixels) {
 	bc := brick.BrickConfig{
 		FPS:      FPS,
 		NumLives: 3,
+		Ap:       ap,
 	}
 	bc.Run()
 }
 
-func RunGameOfLife() {
+func RunGameOfLife(ap *ansipixels.AnsiPixels) {
 	game := conway.Game{
+		AP:       ap,
 		HasMouse: true,
 	}
-	life.RunGame(&game, FPS, 0.1, false)
+	life.RunGame(&game, 0.1, false)
 }
 
 func envMap(s ssh.Session, pty ssh.Pty) map[string]string {
@@ -69,6 +71,15 @@ func envMap(s ssh.Session, pty ssh.Pty) map[string]string {
 	return m
 }
 
+func ResetAP(ap *ansipixels.AnsiPixels, resizeFunc func() error, msg string, args ...any) {
+	ap.OnResize = resizeFunc
+	ap.ShowCursor()
+	ap.MouseTrackingOff()
+	_ = ap.OnResize()
+	ap.WriteAt(0, ap.H-2, msg, args...)
+	ap.EndSyncMode()
+}
+
 func Handler(s ssh.Session) {
 	p, c, ok := s.Pty()
 	env := envMap(s, p)
@@ -80,7 +91,7 @@ func Handler(s ssh.Session) {
 		return
 	}
 	width, height := p.Window.Width, p.Window.Height
-	ap := ansipixels.AnsiPixels{
+	ap := &ansipixels.AnsiPixels{
 		Out:       bufio.NewWriter(s),
 		FPS:       FPS,
 		H:         height,
@@ -97,10 +108,10 @@ func Handler(s ssh.Session) {
 		ap.W, ap.H = width, height
 		return nil
 	}
-	ansipixels.SharedAnsiPixels = &ap
 	ap.SkipOpen = true
 	ap.AutoSync = true
 	ap.TrueColor = true
+	_ = ap.Open()
 	resizeFunc := func() error {
 		ap.ClearScreen()
 		ap.WriteBoxed(ap.H/2-1,
@@ -111,6 +122,10 @@ func Handler(s ssh.Session) {
 	}
 	ap.OnResize = resizeFunc
 	_ = ap.OnResize()
+	defer func() {
+		ap.MouseTrackingOff()
+		ap.ShowCursor()
+	}()
 	keepGoing := true
 	for keepGoing {
 		select {
@@ -140,24 +155,20 @@ func Handler(s ssh.Session) {
 			switch c {
 			case 3, 'q': // Ctrl-C or 'q'
 				log.Infof("Exit requested, closing session")
-				ap.WriteAt(0, ap.H-2, "Exit requested, closing session.")
+				ResetAP(ap, resizeFunc, "Exit requested, closing session.")
 				keepGoing = false
 			case '1':
 				log.Infof("Starting Brick game")
 				ap.WriteAt(0, ap.H-2, "Starting Brick game...")
 				ap.EndSyncMode()
-				RunBrick()
-				ap.OnResize = resizeFunc
-				_ = resizeFunc()
-				ap.WriteAt(0, ap.H-2, "Exited Brick game ")
+				RunBrick(ap)
+				ResetAP(ap, resizeFunc, "Exited Brick game ")
 			case '2':
 				log.Infof("Starting Game of Life")
 				ap.WriteAt(0, ap.H-2, "Starting Game of Life...")
 				ap.EndSyncMode()
-				RunGameOfLife()
-				ap.OnResize = resizeFunc
-				_ = resizeFunc()
-				ap.WriteAt(0, ap.H-2, "Exited Game of Life ")
+				RunGameOfLife(ap)
+				ResetAP(ap, resizeFunc, "Exited Game of Life ")
 			default:
 				// echo back
 				ap.WriteAt(0, ap.H-2, "Received %q", ap.Data)
