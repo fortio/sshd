@@ -3,15 +3,15 @@ module fortio.org/sshdtui
 go 1.24.0
 
 require (
+	fortio.org/cli v1.12.3
 	fortio.org/log v1.18.3
 	fortio.org/scli v1.19.0
-	fortio.org/terminal v0.62.1-0.20251121032204-e937e4ab54e3
+	fortio.org/terminal v0.62.1-0.20251121043933-376b65ef0537
 	github.com/gliderlabs/ssh v0.3.8
 	golang.org/x/crypto v0.45.0
 )
 
 require (
-	fortio.org/cli v1.12.3 // indirect
 	fortio.org/dflag v1.9.3 // indirect
 	fortio.org/duration v1.0.4 // indirect
 	fortio.org/safecast v1.2.0 // indirect

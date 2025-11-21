@@ -16,6 +16,7 @@ import (
 	"fortio.org/scli"
 	"fortio.org/terminal"
 	"fortio.org/terminal/ansipixels"
+	bj "fortio.org/terminal/blackjack/cli"
 	brick "fortio.org/terminal/brick/cli"
 	life "fortio.org/terminal/life/cli"
 	"fortio.org/terminal/life/conway"
@@ -57,6 +58,20 @@ func RunGameOfLife(ap *ansipixels.AnsiPixels) {
 		HasMouse: true,
 	}
 	life.RunGame(&game, 0.1, false)
+}
+
+func RunBlackjackGame(ap *ansipixels.AnsiPixels) {
+	game := bj.Game{
+		AP:          ap,
+		Playing:     true,
+		State:       bj.StatePlayerTurn,
+		Balance:     100,
+		Bet:         10,
+		BorderColor: ansipixels.Green,
+		BorderBG:    ansipixels.GreenBG,
+	}
+	game.InitDeck(4)
+	game.RunGame(ap)
 }
 
 func envMap(s ssh.Session, pty ssh.Pty) map[string]string {
@@ -117,7 +132,7 @@ func Handler(s ssh.Session) {
 		ap.ClearScreen()
 		ap.WriteBoxed(ap.H/2-1,
 			"Ansipixels sshdtui v%s!\nTerminal width: %d, height: %d\n"+
-				"You can resize me!\nQ to quit\n1 for brick game,  \n2 for game of life.",
+				"You can resize me!\nQ to quit\n1 for brick game,  \n2 for game of life,\n3 for BlackJack.   ",
 			cli.ShortVersion, width, height)
 		ap.EndSyncMode()
 		return nil
@@ -171,6 +186,12 @@ func Handler(s ssh.Session) {
 				ap.EndSyncMode()
 				RunGameOfLife(ap)
 				ResetAP(ap, resizeFunc, "Exited Game of Life ")
+			case '3':
+				log.Infof("Starting BlackJack game")
+				ap.WriteAt(0, ap.H-2, "Starting BlackJack game...")
+				ap.EndSyncMode()
+				RunBlackjackGame(ap)
+				ResetAP(ap, resizeFunc, "Exited BlackJack game ")
 			default:
 				// echo back
 				ap.WriteAt(0, ap.H-2, "Received %q", ap.Data)
